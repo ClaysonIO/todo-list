@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches --bg in src/styles.css so the window behind the WebView is
+    <!-- Matches the "bg" CSS variable in src/styles.css so the window behind the WebView is
          already the right colour before the first web frame is painted. -->
     <color name="launch_background">#F6F7F9</color>
 </resources>
