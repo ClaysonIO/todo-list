@@ -38,7 +38,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest ships the Android SDK at $ANDROID_HOME; AGP downloads any
+      # missing platform/build-tools itself (licences are pre-accepted there).
       - run: npm ci
       - run: npm run build
       - run: npx cap sync android
