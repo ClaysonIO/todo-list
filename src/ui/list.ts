@@ -109,7 +109,7 @@ function renderRow(item: Item, state: State, actions: ListActions, now: number):
     }),
     text,
     timer,
-    h('button', { class: 'del', type: 'button', 'aria-label': 'Delete', onclick: () => actions.remove(item.id) }, svg(ICON_X)),
+    h('button', { class: 'del', type: 'button', 'aria-label': 'Delete', title: 'Delete', onclick: (e) => confirmDelete(e.currentTarget as HTMLButtonElement, () => actions.remove(item.id)) }, svg(ICON_X)),
   );
   attachDrag(handle, row, state, actions);
   if (editingId === item.id) queueMicrotask(startEdit);
@@ -142,6 +142,44 @@ function beginEdit(row: HTMLLIElement, textEl: HTMLElement, item: Item, actions:
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
+
+// ---------------------------------------------------------------------------
+// Two-tap delete: the first tap arms the button (turns red), the second tap
+// within ARM_MS deletes. Tapping anywhere else, or waiting, disarms it.
+// ---------------------------------------------------------------------------
+
+const ARM_MS = 3000;
+let armed: { btn: HTMLButtonElement; timer: number } | null = null;
+
+function disarm(): void {
+  if (!armed) return;
+  window.clearTimeout(armed.timer);
+  armed.btn.classList.remove('armed');
+  armed.btn.setAttribute('aria-label', 'Delete');
+  armed.btn.title = 'Delete';
+  armed = null;
+}
+
+function confirmDelete(btn: HTMLButtonElement, remove: () => void): void {
+  if (armed?.btn === btn) {
+    disarm();
+    remove();
+    return;
+  }
+  disarm();
+  btn.classList.add('armed');
+  btn.setAttribute('aria-label', 'Tap again to delete');
+  btn.title = 'Tap again to delete';
+  armed = { btn, timer: window.setTimeout(disarm, ARM_MS) };
+}
+
+document.addEventListener(
+  'pointerdown',
+  (e) => {
+    if (armed && !armed.btn.contains(e.target as Node)) disarm();
+  },
+  true,
+);
 
 // ---------------------------------------------------------------------------
 // Pointer-based drag to reorder (HTML5 DnD is unreliable in Android WebViews)

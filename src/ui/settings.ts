@@ -78,7 +78,7 @@ export function renderSettings(root: HTMLElement, state: State, actions: Setting
       h(
         'div',
         { class: 'row-setting' },
-        h('div', { class: 'lbl' }, 'Item lifetime', h('small', {}, 'Every item lasts 30 hours. Tap its clock to restart the timer. Checked items are cleared at 1:00 am.')),
+        h('div', { class: 'lbl' }, 'Item lifetime', h('small', {}, 'Every item lasts 30 hours. Tap its clock to restart the timer. Checked items are cleared at 1:00 am. Tap ✕ twice to delete.')),
       ),
     ),
   );

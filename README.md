@@ -8,7 +8,7 @@ screen as fast as possible after tapping the icon.**
 ## Features
 
 - Type at the top and press Enter to add an item (the input keeps focus so you can add several in a row).
-- Tap an item's text to edit it inline. Tap ✕ to delete. Drag the ⋮⋮ handle to reorder.
+- Tap an item's text to edit it inline. Tap ✕ twice to delete (the first tap arms it red for three seconds). Drag the ⋮⋮ handle to reorder.
 - Every item has a **30-hour timer**, shown as a small clock on the right. Tap the clock to renew it for another 30 hours. When it runs out the item is removed, checked or not.
 - Checked items move to the bottom of the list and are cleared at **1:00 am** even if their timer has not run out.
 - The **Expired** page lists everything that left the list, grouped and sorted by day.
