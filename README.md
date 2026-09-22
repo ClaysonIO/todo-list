@@ -38,6 +38,8 @@ src/native.ts           Capacitor bridge (back button, resume, share, Capgo noti
 src/ui/*.ts             List, expired page, settings page, DOM helpers
 tests/                  Vitest unit tests for store, cron and CSV
 android/                Generated Capacitor Android project
+assets/                 Master icon SVGs (generated)
+scripts/make-icons.mjs  Generates icon SVGs, adaptive-icon vectors and legacy PNG mipmaps
 .github/workflows/      CI: tests, web build, debug APK artifact
 ```
 
@@ -63,6 +65,18 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
 an artifact named `quick-todo-debug.apk`.
+
+### App icon
+
+The launcher icon is generated from geometry in `scripts/make-icons.mjs`:
+an adaptive icon (vector foreground, gradient background, monochrome layer
+for Android 13 themed icons) plus legacy PNGs for API 24-25. After editing
+the script run:
+
+```bash
+node scripts/make-icons.mjs            # needs playwright for the PNGs
+node scripts/make-icons.mjs --no-png   # vectors and SVGs only
+```
 
 ### Capgo live updates
 
