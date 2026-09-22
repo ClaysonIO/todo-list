@@ -74,7 +74,7 @@ function svgPath(s) {
 function vectorPath(s) {
   const a = [`android:pathData="${s.d}"`];
   a.push(`android:fillColor="${s.fill === 'none' ? '#00000000' : s.fill}"`);
-  if (s.fillRule) a.push(`android:fillType="${s.fillRule}"`);
+  if (s.fillRule) a.push(`android:fillType="${s.fillRule === 'evenodd' ? 'evenOdd' : 'nonZero'}"`); // Android spells it evenOdd
   if (s.stroke) a.push(`android:strokeColor="${s.stroke}" android:strokeWidth="${s.strokeWidth}" android:strokeLineCap="round" android:strokeLineJoin="round"`);
   if (s.opacity !== undefined && s.opacity !== 1) a.push(`android:fillAlpha="${s.opacity}"`);
   return `    <path\n        ${a.join('\n        ')} />`;
