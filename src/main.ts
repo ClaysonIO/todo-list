@@ -2,9 +2,11 @@ import './styles.css';
 import { csvFilename, toCsv } from './csv';
 import {
   addItem,
+  addPlanned,
   addSchedule,
   clearExpired,
   deleteItem,
+  deletePlanned,
   deleteSchedule,
   editItem,
   load,
@@ -16,6 +18,7 @@ import {
   updateSchedule,
 } from './store';
 import type { Theme } from './types';
+import { renderCalendar, type CalendarActions } from './ui/calendar';
 import { toast } from './ui/dom';
 import { renderExpired } from './ui/expired';
 import { mountList, refreshTimers, renderList, type ListActions } from './ui/list';
@@ -34,6 +37,7 @@ if (startup.expired || startup.scheduled) save(state);
 const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
 const pages = {
   todo: $<HTMLElement>('#page-todo'),
+  calendar: $<HTMLElement>('#page-calendar'),
   expired: $<HTMLElement>('#page-expired'),
   settings: $<HTMLElement>('#page-settings'),
 };
@@ -91,14 +95,17 @@ function applyTheme(theme: Theme): void {
 
 function currentRoute(): Route {
   const hash = location.hash.replace(/^#\/?/, '');
-  return hash === 'expired' || hash === 'settings' ? hash : 'todo';
+  return hash === 'calendar' || hash === 'expired' || hash === 'settings' ? hash : 'todo';
 }
 
 function showRoute(): void {
   const route = currentRoute();
   for (const [name, el] of Object.entries(pages)) el.hidden = name !== route;
   for (const a of document.querySelectorAll<HTMLAnchorElement>('.nav a')) a.classList.toggle('active', a.dataset.route === route);
-  if (route === 'expired') {
+  if (route === 'calendar') {
+    tick();
+    renderCalendar(pages.calendar, state, calendarActions);
+  } else if (route === 'expired') {
     renderExpired(pages.expired, state, () => {
       clearExpired(state);
       persist();
@@ -112,6 +119,19 @@ function showRoute(): void {
   }
   window.scrollTo(0, 0);
 }
+
+const calendarActions: CalendarActions = {
+  add(text, day) {
+    const now = Date.now();
+    const added = day <= now ? addItem(state, text, now) : addPlanned(state, text, day, now);
+    if (!added) return;
+    persist();
+    toast(day <= now ? 'Added to today' : 'Planned');
+  },
+  deletePlanned(id) {
+    if (deletePlanned(state, id)) persist();
+  },
+};
 
 const settingsActions: SettingsActions = {
   setTheme(theme) {
@@ -169,6 +189,8 @@ function tick(): void {
   if (r.expired || r.scheduled) {
     persist();
     if (currentRoute() === 'todo') rerenderList();
+    // Leave the calendar alone while someone is typing into its add box.
+    if (currentRoute() === 'calendar' && !pages.calendar.contains(document.activeElement)) renderCalendar(pages.calendar, state, calendarActions);
     if (r.scheduled) toast(r.scheduled === 1 ? 'Scheduled task added' : `${r.scheduled} scheduled tasks added`);
   } else if (currentRoute() === 'todo') {
     refreshTimers(state);

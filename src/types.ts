@@ -16,7 +16,18 @@ export interface ExpiredItem {
   createdAt: number;
   expiredAt: number;
   done: boolean;
+  /** When it was checked; absent on history recorded before this was stored. */
+  doneAt?: number | null;
   reason: ExpiryReason;
+}
+
+/** A one-off task added from the calendar for a future day. */
+export interface Planned {
+  id: string;
+  text: string;
+  /** Epoch ms (local midnight of the chosen day) when it joins the list. */
+  at: number;
+  createdAt: number;
 }
 
 export interface Schedule {
@@ -37,5 +48,6 @@ export interface State {
   items: Item[];
   expired: ExpiredItem[];
   schedules: Schedule[];
+  planned: Planned[];
   theme: Theme;
 }

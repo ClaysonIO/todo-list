@@ -11,6 +11,7 @@ screen as fast as possible after tapping the icon.**
 - Tap an item's text to edit it inline. Tap ✕ twice to delete (the first tap arms it red for three seconds). Drag the ⋮⋮ handle to reorder.
 - Every item has a **30-hour timer**, shown as a small clock on the right. Tap the clock to renew it for another 30 hours. When it runs out the item is removed, checked or not.
 - Checked items move to the bottom of the list and are cleared at **1:00 am** even if their timer has not run out.
+- The **Calendar** page shows a month at a time; swipe up for the next month and down for the previous one. Coloured dots mark days with tasks: open (today), planned one-offs, recurring runs of scheduled tasks, done, and missed. Tap a day to see its tasks, and add tasks to today or any future day (a future task joins the list at midnight on its day). Checked tasks sit on the day they were checked, tasks that expired unchecked on the day they were created, and open tasks on today.
 - The **Expired** page lists everything that left the list, grouped and sorted by day.
 - **Settings** lets you add scheduled tasks on a 5-field cron expression (local time), switch between system / light / dark theme, and export all data to CSV.
 

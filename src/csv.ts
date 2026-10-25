@@ -6,7 +6,7 @@ function cell(v: string | number | boolean | null): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** All items (active, checked and expired) as one CSV. Timestamps are ISO-8601 UTC. */
+/** All items (active, checked, expired and planned) as one CSV. For planned rows created_at is the day they join the list. Timestamps are ISO-8601 UTC. */
 export function toCsv(state: State): string {
   const rows: string[] = ['id,text,status,created_at,expires_at,done_at,expired_at,expiry_reason'];
   for (const i of state.items) {
@@ -14,7 +14,10 @@ export function toCsv(state: State): string {
   }
   const expired = [...state.expired].sort((a, b) => b.expiredAt - a.expiredAt);
   for (const e of expired) {
-    rows.push([e.id, e.text, 'expired', e.createdAt, null, null, e.expiredAt, `${e.reason}${e.done ? ' (was checked)' : ''}`].map(cell).join(','));
+    rows.push([e.id, e.text, 'expired', e.createdAt, null, e.doneAt ?? null, e.expiredAt, `${e.reason}${e.done ? ' (was checked)' : ''}`].map(cell).join(','));
+  }
+  for (const p of state.planned) {
+    rows.push([p.id, p.text, 'planned', p.at, null, null, null, null].map(cell).join(','));
   }
   return rows.join('\r\n') + '\r\n';
 }

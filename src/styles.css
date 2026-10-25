@@ -10,6 +10,7 @@
   --danger: #c2410c;
   --warn: #b45309;
   --ok: #15803d;
+  --planned: #7c3aed;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   --radius: 12px;
   --nav-h: 56px;
@@ -29,6 +30,7 @@
     --danger: #f87171;
     --warn: #fbbf24;
     --ok: #4ade80;
+    --planned: #a78bfa;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }
@@ -45,6 +47,7 @@
   --danger: #f87171;
   --warn: #fbbf24;
   --ok: #4ade80;
+  --planned: #a78bfa;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
@@ -517,4 +520,205 @@ h2 {
   z-index: 10;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   max-width: calc(100% - 32px);
+}
+
+/* ---- Calendar ---- */
+.cal-head h1 {
+  margin-bottom: 8px;
+}
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cal-nav .btn {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.icon-btn:active {
+  background: var(--surface-2);
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  overflow: hidden;
+}
+.cal-week,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.cal-week span {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 0 4px;
+}
+.cal-grid {
+  gap: 2px;
+  /* vertical swipes change month; the browser must not scroll the page instead */
+  touch-action: none;
+  user-select: none;
+}
+.cal-grid.slide-next {
+  animation: cal-next 180ms ease-out;
+}
+.cal-grid.slide-prev {
+  animation: cal-prev 180ms ease-out;
+}
+@keyframes cal-next {
+  from {
+    transform: translateY(24px);
+    opacity: 0.3;
+  }
+}
+@keyframes cal-prev {
+  from {
+    transform: translateY(-24px);
+    opacity: 0.3;
+  }
+}
+.cal-day {
+  /* six rows always fit on screen with the header, legend and nav */
+  height: clamp(40px, calc((100dvh - 330px) / var(--rows, 6)), 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding-top: 5px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-day:active {
+  background: var(--surface-2);
+}
+.cal-day .num {
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  border-radius: 50%;
+}
+.cal-day.other {
+  color: var(--muted);
+  opacity: 0.5;
+}
+.cal-day.today .num {
+  color: var(--accent);
+  font-weight: 700;
+}
+.cal-day.sel .num {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+.dots {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+}
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--muted);
+}
+.dot.open {
+  background: var(--accent);
+}
+.dot.planned {
+  background: var(--planned);
+}
+.dot.recurring {
+  background: var(--warn);
+}
+.dot.done {
+  background: var(--ok);
+}
+.dot.missed {
+  background: var(--muted);
+  opacity: 0.6;
+}
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 8px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cal-detail h2 {
+  margin-top: 16px;
+}
+.cal-entry {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 8px 8px 12px;
+  min-height: 46px;
+}
+.cal-entry .t {
+  overflow-wrap: anywhere;
+}
+.cal-entry .meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cal-entry.done .t {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.cal-entry.missed .t {
+  color: var(--muted);
+}
+.cal-add {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.cal-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  outline: none;
+}
+.cal-add input:focus {
+  border-color: var(--accent);
+}
+.cal-add .btn {
+  padding: 8px 14px;
 }
