@@ -8,6 +8,7 @@ export interface SettingsActions {
   toggleSchedule(id: string, enabled: boolean): void;
   deleteSchedule(id: string): void;
   exportCsv(): void;
+  importCsv(file: File): void;
   setFocusOnLaunch(on: boolean): void;
   focusOnLaunch(): boolean;
 }
@@ -143,6 +144,13 @@ export function renderSettings(root: HTMLElement, state: State, actions: Setting
   root.append(form);
 
   // ---- Data ----
+  const fileInput = h('input', { type: 'file', accept: '.csv,text/csv,text/comma-separated-values,text/plain', hidden: true }) as HTMLInputElement;
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (file) actions.importCsv(file);
+  });
+  root.append(fileInput);
   root.append(h('h2', {}, 'Data'));
   root.append(
     h(
@@ -153,6 +161,12 @@ export function renderSettings(root: HTMLElement, state: State, actions: Setting
         { class: 'row-setting' },
         h('div', { class: 'lbl' }, 'Export to CSV', h('small', {}, `${state.items.length} active · ${state.expired.length} expired. Everything is stored on this device only.`)),
         h('button', { class: 'btn ghost', type: 'button', onclick: () => actions.exportCsv() }, 'Export'),
+      ),
+      h(
+        'div',
+        { class: 'row-setting' },
+        h('div', { class: 'lbl' }, 'Import from CSV', h('small', {}, 'Adds the items in an exported file. Items already here are kept and not duplicated.')),
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => fileInput.click() }, 'Import'),
       ),
     ),
   );

@@ -368,6 +368,44 @@ export function groupExpired(expired: ExpiredItem[]): ExpiredGroup[] {
   return groups;
 }
 
+export interface ImportData {
+  items: Item[];
+  expired: ExpiredItem[];
+  planned: Planned[];
+}
+
+/**
+ * Merge imported records into state, skipping any id already present so
+ * importing the same file twice adds nothing. Returns how many were added.
+ * Call sweep afterwards: imported timers may already have run out.
+ */
+export function mergeImport(state: State, data: ImportData): number {
+  const seen = new Set([...state.items, ...state.expired, ...state.planned].map((x) => x.id));
+  const fresh = <T extends { id: string }>(list: T[]) =>
+    list.filter((x) => {
+      if (seen.has(x.id)) return false;
+      seen.add(x.id);
+      return true;
+    });
+  const items = fresh(data.items);
+  const expired = fresh(data.expired);
+  const planned = fresh(data.planned);
+  // Keep active items ahead of done ones, as moveItem expects.
+  state.items = [
+    ...state.items.filter((i) => !i.done),
+    ...items.filter((i) => !i.done),
+    ...state.items.filter((i) => i.done),
+    ...items.filter((i) => i.done),
+  ];
+  state.expired.push(...expired);
+  if (state.expired.length > MAX_EXPIRED) {
+    state.expired.sort((a, b) => a.expiredAt - b.expiredAt);
+    state.expired.splice(0, state.expired.length - MAX_EXPIRED);
+  }
+  state.planned.push(...planned);
+  return items.length + expired.length + planned.length;
+}
+
 export function clearExpired(state: State): void {
   state.expired = [];
 }

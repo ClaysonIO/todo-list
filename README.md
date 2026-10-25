@@ -13,7 +13,7 @@ screen as fast as possible after tapping the icon.**
 - Checked items move to the bottom of the list and are cleared at **1:00 am** even if their timer has not run out.
 - The **Calendar** page shows a month at a time; swipe up for the next month and down for the previous one. Coloured dots mark days with tasks: open (today), planned one-offs, recurring runs of scheduled tasks, done, and missed. Tap a day to see its tasks, and add tasks to today or any future day (a future task joins the list at midnight on its day). Checked tasks sit on the day they were checked, tasks that expired unchecked on the day they were created, and open tasks on today.
 - The **Expired** page lists everything that left the list, grouped and sorted by day.
-- **Settings** lets you add scheduled tasks on a 5-field cron expression (local time), switch between system / light / dark theme, and export all data to CSV.
+- **Settings** lets you add scheduled tasks on a 5-field cron expression (local time), switch between system / light / dark theme, export all data to CSV, and import an exported CSV (merged in, skipping items already present; scheduled tasks and settings are not part of the CSV).
 
 ## Why it starts fast
 

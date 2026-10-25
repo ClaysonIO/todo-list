@@ -1,5 +1,5 @@
 import './styles.css';
-import { csvFilename, toCsv } from './csv';
+import { csvFilename, fromCsv, toCsv } from './csv';
 import {
   addItem,
   addPlanned,
@@ -10,6 +10,7 @@ import {
   deleteSchedule,
   editItem,
   load,
+  mergeImport,
   renewItem,
   save,
   setTheme,
@@ -168,6 +169,21 @@ const settingsActions: SettingsActions = {
       .then((n) => n.shareCsv(csvFilename(), toCsv(state)))
       .then(() => toast('Exported'))
       .catch((e: unknown) => toast(`Export failed: ${e instanceof Error ? e.message : String(e)}`));
+  },
+  importCsv(file) {
+    file
+      .text()
+      .then((text) => {
+        const data = fromCsv(text);
+        const added = mergeImport(state, data);
+        persist();
+        tick(); // imported timers may already have run out
+        rerenderList();
+        renderSettings(pages.settings, state, settingsActions);
+        const skipped = data.skipped ? ` · ${data.skipped} unreadable row${data.skipped === 1 ? '' : 's'} skipped` : '';
+        toast(added ? `Imported ${added} item${added === 1 ? '' : 's'}${skipped}` : `Nothing new to import${skipped}`, 3500);
+      })
+      .catch((e: unknown) => toast(`Import failed: ${e instanceof Error ? e.message : String(e)}`));
   },
   setFocusOnLaunch(on) {
     try {
