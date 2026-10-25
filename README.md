@@ -67,6 +67,33 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
 an artifact named `quick-todo-debug.apk`.
 
+### Signing
+
+CI signs every APK with one fixed keystore, so each new build installs over
+the previous one and keeps your data. It also sets `versionCode` to the run
+number. Create the keystore once and keep a backup, because a lost key means
+uninstalling to switch to a new one:
+
+```bash
+keytool -genkeypair -v -keystore quick-todo.jks -alias quicktodo \
+  -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 quick-todo.jks   # macOS: base64 -i quick-todo.jks
+```
+
+Then add these repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | the base64 output above |
+| `ANDROID_KEYSTORE_PASSWORD` | the keystore password |
+| `ANDROID_KEY_ALIAS` | `quicktodo` (the `-alias` you chose) |
+| `ANDROID_KEY_PASSWORD` | the key password (same as the keystore password unless you set one) |
+
+Without the secrets the build still succeeds, but with a warning, and the APK
+is signed with a throwaway debug key. To sign local builds with the same key,
+export `ANDROID_KEYSTORE_PATH` and the three password and alias variables
+before running Gradle.
+
 ### App icon
 
 The launcher icon is generated from geometry in `scripts/make-icons.mjs`:
