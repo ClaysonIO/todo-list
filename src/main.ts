@@ -32,7 +32,7 @@ const FOCUS_KEY = 'quicktodo.focusOnLaunch';
 // ---------------------------------------------------------------------------
 const state = load();
 const startup = sweep(state, Date.now());
-if (startup.expired || startup.scheduled) save(state);
+if (startup.expired || startup.scheduled || startup.planned) save(state);
 
 const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
 const pages = {
@@ -126,6 +126,8 @@ const calendarActions: CalendarActions = {
     const added = day <= now ? addItem(state, text, now) : addPlanned(state, text, day, now);
     if (!added) return;
     persist();
+    // The todo page is only hidden, so keep it current for when the user switches back.
+    rerenderList();
     toast(day <= now ? 'Added to today' : 'Planned');
   },
   deletePlanned(id) {
@@ -186,12 +188,14 @@ const settingsActions: SettingsActions = {
 /** Periodic housekeeping: expire, fire schedules, refresh countdowns. */
 function tick(): void {
   const r = sweep(state, Date.now());
-  if (r.expired || r.scheduled) {
+  if (r.expired || r.scheduled || r.planned) {
     persist();
-    if (currentRoute() === 'todo') rerenderList();
+    // Rebuild even when hidden: switching back to Todo only refreshes timers.
+    rerenderList();
     // Leave the calendar alone while someone is typing into its add box.
     if (currentRoute() === 'calendar' && !pages.calendar.contains(document.activeElement)) renderCalendar(pages.calendar, state, calendarActions);
-    if (r.scheduled) toast(r.scheduled === 1 ? 'Scheduled task added' : `${r.scheduled} scheduled tasks added`);
+    const added = r.scheduled + r.planned;
+    if (added) toast(added === 1 ? (r.planned ? 'Planned task added' : 'Scheduled task added') : `${added} tasks added`);
   } else if (currentRoute() === 'todo') {
     refreshTimers(state);
   }

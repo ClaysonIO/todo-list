@@ -92,9 +92,9 @@ describe('planned tasks', () => {
     const p = addPlanned(s, '  call mum ', local(2026, 10, 27, 15), now)!;
     expect(p.at).toBe(local(2026, 10, 27));
     expect(addPlanned(s, ' ', local(2026, 10, 27), now)).toBeNull();
-    expect(sweep(s, local(2026, 10, 26, 23)).scheduled).toBe(0);
+    expect(sweep(s, local(2026, 10, 26, 23)).planned).toBe(0);
     const later = local(2026, 10, 27, 7);
-    expect(sweep(s, later).scheduled).toBe(1);
+    expect(sweep(s, later)).toMatchObject({ planned: 1, scheduled: 0 });
     expect(s.planned).toHaveLength(0);
     expect(s.items[0]).toMatchObject({ text: 'call mum', createdAt: local(2026, 10, 27), expiresAt: later + TTL_MS, done: false });
   });

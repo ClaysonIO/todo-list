@@ -184,6 +184,7 @@ function expire(state: State, item: Item, at: number, reason: ExpiryReason): voi
 export interface SweepResult {
   expired: number;
   scheduled: number;
+  planned: number;
 }
 
 /**
@@ -196,7 +197,7 @@ export interface SweepResult {
  * whether to persist and re-render.
  */
 export function sweep(state: State, now: number): SweepResult {
-  const result: SweepResult = { expired: 0, scheduled: 0 };
+  const result: SweepResult = { expired: 0, scheduled: 0, planned: 0 };
   const boundary = lastNightlyBoundary(now);
   const keep: Item[] = [];
   for (const item of state.items) {
@@ -260,7 +261,7 @@ export function sweep(state: State, now: number): SweepResult {
         done: false,
         doneAt: null,
       });
-      result.scheduled++;
+      result.planned++;
     }
   }
   return result;
