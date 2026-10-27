@@ -27,6 +27,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+export const ICON_X = '<path d="M6 6l12 12M18 6L6 18"/>';
+
 export function svg(pathData: string, viewBox = '0 0 24 24'): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const s = document.createElementNS(ns, 'svg');
@@ -71,3 +73,41 @@ export function formatDateHeading(date: Date, now = new Date()): string {
 export function formatDateTime(ts: number): string {
   return new Date(ts).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+// ---------------------------------------------------------------------------
+// Two-tap delete: the first tap arms the button (turns red), the second tap
+// within ARM_MS deletes. Tapping anywhere else, or waiting, disarms it.
+// ---------------------------------------------------------------------------
+
+const ARM_MS = 3000;
+let armed: { btn: HTMLButtonElement; timer: number } | null = null;
+
+function disarm(): void {
+  if (!armed) return;
+  window.clearTimeout(armed.timer);
+  armed.btn.classList.remove('armed');
+  armed.btn.setAttribute('aria-label', 'Delete');
+  armed.btn.title = 'Delete';
+  armed = null;
+}
+
+export function confirmDelete(btn: HTMLButtonElement, remove: () => void): void {
+  if (armed?.btn === btn) {
+    disarm();
+    remove();
+    return;
+  }
+  disarm();
+  btn.classList.add('armed');
+  btn.setAttribute('aria-label', 'Tap again to delete');
+  btn.title = 'Tap again to delete';
+  armed = { btn, timer: window.setTimeout(disarm, ARM_MS) };
+}
+
+document.addEventListener(
+  'pointerdown',
+  (e) => {
+    if (armed && !armed.btn.contains(e.target as Node)) disarm();
+  },
+  true,
+);

@@ -2,7 +2,7 @@ import { addDays, calendarEntries, KIND_ORDER, monthGrid, monthStart, startOfDay
 import { describeCron } from '../cron';
 import { localDateKey } from '../store';
 import type { State } from '../types';
-import { clear, formatTime, h, svg } from './dom';
+import { clear, confirmDelete, formatTime, h, ICON_X, svg } from './dom';
 import { timeLeftLabel } from './list';
 
 export interface CalendarActions {
@@ -21,7 +21,6 @@ const KIND_LABEL: Record<EntryKind, string> = {
 
 const ICON_UP = '<path d="M6 15l6-6 6 6"/>';
 const ICON_DOWN = '<path d="M6 9l6 6 6-6"/>';
-const ICON_X = '<path d="M6 6l12 12M18 6L6 18"/>';
 const SWIPE_PX = 40;
 
 // View state survives re-renders and route changes within a session.
@@ -220,11 +219,13 @@ function renderEntry(e: CalendarEntry, now: number): HTMLElement {
           {
             class: 'del',
             type: 'button',
-            'aria-label': `Remove ${e.text}`,
-            onclick: () => {
-              actions.deletePlanned(e.id);
-              rerender();
-            },
+            'aria-label': 'Delete',
+            title: 'Delete',
+            onclick: (ev) =>
+              confirmDelete(ev.currentTarget as HTMLButtonElement, () => {
+                actions.deletePlanned(e.id);
+                rerender();
+              }),
           },
           svg(ICON_X),
         )
