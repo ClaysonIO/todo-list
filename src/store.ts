@@ -1,5 +1,5 @@
 import { lastFiredBetween, parseCron } from './cron';
-import type { ExpiredItem, ExpiryReason, Item, Schedule, State, Theme } from './types';
+import type { ExpiredItem, ExpiryReason, Item, Planned, Schedule, State, Theme } from './types';
 
 export const TTL_MS = 30 * 60 * 60 * 1000; // 30 hours
 export const NIGHTLY_HOUR = 1; // checked items are cleared at 01:00 local time
@@ -13,7 +13,7 @@ export function uid(): string {
 }
 
 export function emptyState(): State {
-  return { items: [], expired: [], schedules: [], theme: 'system' };
+  return { items: [], expired: [], schedules: [], planned: [], theme: 'system' };
 }
 
 /** Parse persisted JSON defensively; a corrupt blob must never block startup. */
@@ -27,6 +27,7 @@ export function deserialize(raw: string | null): State {
     }
     if (Array.isArray(parsed.expired)) state.expired = parsed.expired.filter(isExpired);
     if (Array.isArray(parsed.schedules)) state.schedules = parsed.schedules.filter(isSchedule);
+    if (Array.isArray(parsed.planned)) state.planned = parsed.planned.filter(isPlanned);
     if (parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system') state.theme = parsed.theme;
   } catch {
     /* ignore */
@@ -41,6 +42,10 @@ function isItem(x: unknown): x is Item {
 function isExpired(x: unknown): x is ExpiredItem {
   const o = x as ExpiredItem;
   return !!o && typeof o.id === 'string' && typeof o.text === 'string' && typeof o.expiredAt === 'number';
+}
+function isPlanned(x: unknown): x is Planned {
+  const o = x as Planned;
+  return !!o && typeof o.id === 'string' && typeof o.text === 'string' && typeof o.at === 'number';
 }
 function isSchedule(x: unknown): x is Schedule {
   const o = x as Schedule;
@@ -171,6 +176,7 @@ function expire(state: State, item: Item, at: number, reason: ExpiryReason): voi
     createdAt: item.createdAt,
     expiredAt: at,
     done: item.done,
+    doneAt: item.doneAt,
     reason,
   });
 }
@@ -178,18 +184,20 @@ function expire(state: State, item: Item, at: number, reason: ExpiryReason): voi
 export interface SweepResult {
   expired: number;
   scheduled: number;
+  planned: number;
 }
 
 /**
  * Apply everything time-based:
  *  1. items whose 30h timer ran out are moved to history (checked or not);
  *  2. checked items are moved to history at the 01:00 boundary;
- *  3. enabled schedules that fired since their last check add a new item.
+ *  3. enabled schedules that fired since their last check add a new item;
+ *  4. one-off planned tasks whose day has arrived join the list.
  * Safe to call as often as you like. Returns counts so the caller knows
  * whether to persist and re-render.
  */
 export function sweep(state: State, now: number): SweepResult {
-  const result: SweepResult = { expired: 0, scheduled: 0 };
+  const result: SweepResult = { expired: 0, scheduled: 0, planned: 0 };
   const boundary = lastNightlyBoundary(now);
   const keep: Item[] = [];
   for (const item of state.items) {
@@ -240,7 +248,45 @@ export function sweep(state: State, now: number): SweepResult {
     }
     schedule.checkedAt = now;
   }
+
+  if (state.planned.some((p) => p.at <= now)) {
+    const due = state.planned.filter((p) => p.at <= now).sort((a, b) => a.at - b.at);
+    state.planned = state.planned.filter((p) => p.at > now);
+    for (const p of due) {
+      state.items.unshift({
+        id: p.id,
+        text: p.text,
+        createdAt: p.at,
+        expiresAt: now + TTL_MS,
+        done: false,
+        doneAt: null,
+      });
+      result.planned++;
+    }
+  }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Planned one-off tasks
+// ---------------------------------------------------------------------------
+
+/** Plan `text` for the local calendar day containing `day`; it joins the list at that day's midnight. */
+export function addPlanned(state: State, text: string, day: number, now: number): Planned | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  const planned: Planned = { id: uid(), text: trimmed, at: d.getTime(), createdAt: now };
+  state.planned.push(planned);
+  return planned;
+}
+
+export function deletePlanned(state: State, id: string): boolean {
+  const idx = state.planned.findIndex((p) => p.id === id);
+  if (idx < 0) return false;
+  state.planned.splice(idx, 1);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -320,6 +366,44 @@ export function groupExpired(expired: ExpiredItem[]): ExpiredGroup[] {
   groups.sort((a, b) => b.date.getTime() - a.date.getTime());
   for (const g of groups) g.items.sort((a, b) => b.expiredAt - a.expiredAt);
   return groups;
+}
+
+export interface ImportData {
+  items: Item[];
+  expired: ExpiredItem[];
+  planned: Planned[];
+}
+
+/**
+ * Merge imported records into state, skipping any id already present so
+ * importing the same file twice adds nothing. Returns how many were added.
+ * Call sweep afterwards: imported timers may already have run out.
+ */
+export function mergeImport(state: State, data: ImportData): number {
+  const seen = new Set([...state.items, ...state.expired, ...state.planned].map((x) => x.id));
+  const fresh = <T extends { id: string }>(list: T[]) =>
+    list.filter((x) => {
+      if (seen.has(x.id)) return false;
+      seen.add(x.id);
+      return true;
+    });
+  const items = fresh(data.items);
+  const expired = fresh(data.expired);
+  const planned = fresh(data.planned);
+  // Keep active items ahead of done ones, as moveItem expects.
+  state.items = [
+    ...state.items.filter((i) => !i.done),
+    ...items.filter((i) => !i.done),
+    ...state.items.filter((i) => i.done),
+    ...items.filter((i) => i.done),
+  ];
+  state.expired.push(...expired);
+  if (state.expired.length > MAX_EXPIRED) {
+    state.expired.sort((a, b) => a.expiredAt - b.expiredAt);
+    state.expired.splice(0, state.expired.length - MAX_EXPIRED);
+  }
+  state.planned.push(...planned);
+  return items.length + expired.length + planned.length;
 }
 
 export function clearExpired(state: State): void {

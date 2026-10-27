@@ -1,13 +1,16 @@
 import './styles.css';
-import { csvFilename, toCsv } from './csv';
+import { csvFilename, fromCsv, toCsv } from './csv';
 import {
   addItem,
+  addPlanned,
   addSchedule,
   clearExpired,
   deleteItem,
+  deletePlanned,
   deleteSchedule,
   editItem,
   load,
+  mergeImport,
   renewItem,
   save,
   setTheme,
@@ -16,6 +19,7 @@ import {
   updateSchedule,
 } from './store';
 import type { Theme } from './types';
+import { renderCalendar, type CalendarActions } from './ui/calendar';
 import { toast } from './ui/dom';
 import { renderExpired } from './ui/expired';
 import { mountList, refreshTimers, renderList, type ListActions } from './ui/list';
@@ -29,11 +33,12 @@ const FOCUS_KEY = 'quicktodo.focusOnLaunch';
 // ---------------------------------------------------------------------------
 const state = load();
 const startup = sweep(state, Date.now());
-if (startup.expired || startup.scheduled) save(state);
+if (startup.expired || startup.scheduled || startup.planned) save(state);
 
 const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
 const pages = {
   todo: $<HTMLElement>('#page-todo'),
+  calendar: $<HTMLElement>('#page-calendar'),
   expired: $<HTMLElement>('#page-expired'),
   settings: $<HTMLElement>('#page-settings'),
 };
@@ -91,14 +96,17 @@ function applyTheme(theme: Theme): void {
 
 function currentRoute(): Route {
   const hash = location.hash.replace(/^#\/?/, '');
-  return hash === 'expired' || hash === 'settings' ? hash : 'todo';
+  return hash === 'calendar' || hash === 'expired' || hash === 'settings' ? hash : 'todo';
 }
 
 function showRoute(): void {
   const route = currentRoute();
   for (const [name, el] of Object.entries(pages)) el.hidden = name !== route;
   for (const a of document.querySelectorAll<HTMLAnchorElement>('.nav a')) a.classList.toggle('active', a.dataset.route === route);
-  if (route === 'expired') {
+  if (route === 'calendar') {
+    tick();
+    renderCalendar(pages.calendar, state, calendarActions);
+  } else if (route === 'expired') {
     renderExpired(pages.expired, state, () => {
       clearExpired(state);
       persist();
@@ -112,6 +120,21 @@ function showRoute(): void {
   }
   window.scrollTo(0, 0);
 }
+
+const calendarActions: CalendarActions = {
+  add(text, day) {
+    const now = Date.now();
+    const added = day <= now ? addItem(state, text, now) : addPlanned(state, text, day, now);
+    if (!added) return;
+    persist();
+    // The todo page is only hidden, so keep it current for when the user switches back.
+    rerenderList();
+    toast(day <= now ? 'Added to today' : 'Planned');
+  },
+  deletePlanned(id) {
+    if (deletePlanned(state, id)) persist();
+  },
+};
 
 const settingsActions: SettingsActions = {
   setTheme(theme) {
@@ -147,6 +170,21 @@ const settingsActions: SettingsActions = {
       .then(() => toast('Exported'))
       .catch((e: unknown) => toast(`Export failed: ${e instanceof Error ? e.message : String(e)}`));
   },
+  importCsv(file) {
+    file
+      .text()
+      .then((text) => {
+        const data = fromCsv(text);
+        const added = mergeImport(state, data);
+        persist();
+        tick(); // imported timers may already have run out
+        rerenderList();
+        renderSettings(pages.settings, state, settingsActions);
+        const skipped = data.skipped ? ` · ${data.skipped} unreadable row${data.skipped === 1 ? '' : 's'} skipped` : '';
+        toast(added ? `Imported ${added} item${added === 1 ? '' : 's'}${skipped}` : `Nothing new to import${skipped}`, 3500);
+      })
+      .catch((e: unknown) => toast(`Import failed: ${e instanceof Error ? e.message : String(e)}`));
+  },
   setFocusOnLaunch(on) {
     try {
       localStorage.setItem(FOCUS_KEY, on ? '1' : '0');
@@ -166,10 +204,14 @@ const settingsActions: SettingsActions = {
 /** Periodic housekeeping: expire, fire schedules, refresh countdowns. */
 function tick(): void {
   const r = sweep(state, Date.now());
-  if (r.expired || r.scheduled) {
+  if (r.expired || r.scheduled || r.planned) {
     persist();
-    if (currentRoute() === 'todo') rerenderList();
-    if (r.scheduled) toast(r.scheduled === 1 ? 'Scheduled task added' : `${r.scheduled} scheduled tasks added`);
+    // Rebuild even when hidden: switching back to Todo only refreshes timers.
+    rerenderList();
+    // Leave the calendar alone while someone is typing into its add box.
+    if (currentRoute() === 'calendar' && !pages.calendar.contains(document.activeElement)) renderCalendar(pages.calendar, state, calendarActions);
+    const added = r.scheduled + r.planned;
+    if (added) toast(added === 1 ? (r.planned ? 'Planned task added' : 'Scheduled task added') : `${added} tasks added`);
   } else if (currentRoute() === 'todo') {
     refreshTimers(state);
   }
