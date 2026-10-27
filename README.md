@@ -97,6 +97,25 @@ is signed with a throwaway debug key. To sign local builds with the same key,
 export `ANDROID_KEYSTORE_PATH` and the three password and alias variables
 before running Gradle.
 
+### Publishing to Google Play
+
+Every push to `main` (that is, every merged PR) uploads the signed release
+bundle to the Google Play **internal** testing track. The version code is the
+workflow run number, so each upload is newer than the last. This needs a Google
+Cloud service account that Play Console allows to release:
+
+1. In Google Cloud, enable the **Google Play Android Developer API** and create
+   a service account. Create a JSON key for it.
+2. In Play Console → **Users and permissions**, invite the service account's
+   email and give it **Release apps to testing tracks** (and **Release to
+   production** if you point it at production) for Quick Todo.
+3. Add the JSON key's contents as the repository secret
+   `PLAY_SERVICE_ACCOUNT_JSON`.
+
+To publish somewhere else, set the repository variable `PLAY_TRACK` (for
+example `alpha` for closed testing, or `production`) and, if needed,
+`PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress` or `halted`).
+
 ### App icon
 
 The launcher icon is generated from geometry in `scripts/make-icons.mjs`:
