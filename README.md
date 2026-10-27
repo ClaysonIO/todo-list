@@ -68,7 +68,7 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
 an artifact named `quick-todo-debug.apk`. When the signing secrets are set it
 also attaches `quick-todo-release.aab`, a release bundle to upload to Google
-Play.
+Play, and `quick-todo-release.apk`, a signed release APK.
 
 ### Signing
 
@@ -115,6 +115,19 @@ Cloud service account that Play Console allows to release:
 To publish somewhere else, set the repository variable `PLAY_TRACK` (for
 example `alpha` for closed testing, or `production`) and, if needed,
 `PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress` or `halted`).
+
+### GitHub releases
+
+Every push to `main` also creates a GitHub release named `Build <run number>`
+(tag `build-<run number>`) with the signed release APK attached as
+`quick-todo-<run number>.apk`, so people outside the Play testing track can
+install it directly. This needs only the signing secrets above; the job fails
+without them rather than publishing an APK that cannot update itself.
+
+If the app uses Play App Signing, copies installed from Google Play are signed
+with Google's key rather than yours. Android won't install a GitHub APK over one
+of those, or a Play copy over a GitHub APK, without uninstalling first, so stick
+to one source per device.
 
 ### App icon
 
