@@ -1,6 +1,6 @@
 import { moveItem, visibleItems } from '../store';
 import type { Item, State } from '../types';
-import { clear, h, svg } from './dom';
+import { clear, confirmDelete, h, ICON_X, svg } from './dom';
 
 export interface ListActions {
   toggle(id: string): void;
@@ -12,7 +12,6 @@ export interface ListActions {
 
 const ICON_HANDLE = '<circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/>';
 const ICON_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
-const ICON_X = '<path d="M6 6l12 12M18 6L6 18"/>';
 
 export function timeLeftLabel(expiresAt: number, now: number): { text: string; cls: string } {
   const ms = Math.max(0, expiresAt - now);
@@ -142,44 +141,6 @@ function beginEdit(row: HTMLLIElement, textEl: HTMLElement, item: Item, actions:
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
-
-// ---------------------------------------------------------------------------
-// Two-tap delete: the first tap arms the button (turns red), the second tap
-// within ARM_MS deletes. Tapping anywhere else, or waiting, disarms it.
-// ---------------------------------------------------------------------------
-
-const ARM_MS = 3000;
-let armed: { btn: HTMLButtonElement; timer: number } | null = null;
-
-function disarm(): void {
-  if (!armed) return;
-  window.clearTimeout(armed.timer);
-  armed.btn.classList.remove('armed');
-  armed.btn.setAttribute('aria-label', 'Delete');
-  armed.btn.title = 'Delete';
-  armed = null;
-}
-
-function confirmDelete(btn: HTMLButtonElement, remove: () => void): void {
-  if (armed?.btn === btn) {
-    disarm();
-    remove();
-    return;
-  }
-  disarm();
-  btn.classList.add('armed');
-  btn.setAttribute('aria-label', 'Tap again to delete');
-  btn.title = 'Tap again to delete';
-  armed = { btn, timer: window.setTimeout(disarm, ARM_MS) };
-}
-
-document.addEventListener(
-  'pointerdown',
-  (e) => {
-    if (armed && !armed.btn.contains(e.target as Node)) disarm();
-  },
-  true,
-);
 
 // ---------------------------------------------------------------------------
 // Pointer-based drag to reorder (HTML5 DnD is unreliable in Android WebViews)

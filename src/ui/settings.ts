@@ -1,6 +1,6 @@
 import { cronError, describeCron, nextOccurrence, parseCron } from '../cron';
 import type { Schedule, State, Theme } from '../types';
-import { clear, formatDateTime, h } from './dom';
+import { clear, confirmDelete, formatDateTime, h, ICON_X, svg } from './dom';
 
 export interface SettingsActions {
   setTheme(theme: Theme): void;
@@ -234,13 +234,15 @@ function renderSchedule(s: Schedule, now: number, actions: SettingsActions, rere
       {
         class: 'del',
         type: 'button',
-        'aria-label': `Delete ${s.text}`,
-        onclick: () => {
-          actions.deleteSchedule(s.id);
-          rerender();
-        },
+        'aria-label': 'Delete',
+        title: 'Delete',
+        onclick: (e) =>
+          confirmDelete(e.currentTarget as HTMLButtonElement, () => {
+            actions.deleteSchedule(s.id);
+            rerender();
+          }),
       },
-      '✕',
+      svg(ICON_X),
     ),
   );
 }
