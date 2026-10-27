@@ -41,7 +41,8 @@ tests/                  Vitest unit tests for store, cron and CSV
 android/                Generated Capacitor Android project
 assets/                 Master icon SVGs (generated)
 scripts/make-icons.mjs  Generates icon SVGs, adaptive-icon vectors and legacy PNG mipmaps
-.github/workflows/      CI: tests, web build, debug APK artifact
+site/                   Public website and privacy policy (GitHub Pages)
+.github/workflows/      CI: tests, web build, APK/AAB artifacts; Pages deploy of site/
 ```
 
 ## Development

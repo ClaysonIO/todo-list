@@ -17,6 +17,10 @@ const config: CapacitorConfig = {
       // via `npx @capgo/cli init`) once the app is registered on capgo.app.
       // Leaving it off means the app never touches the network on launch.
       autoUpdate: false,
+      // The plugin reports launch stats (with a device ID) to Capgo by
+      // default, even with autoUpdate off. An empty URL turns that off, so the
+      // app sends nothing anywhere, as the privacy policy says.
+      statsUrl: '',
       resetWhenUpdate: true,
       directUpdate: false,
     },
