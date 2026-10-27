@@ -65,7 +65,9 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
-an artifact named `quick-todo-debug.apk`.
+an artifact named `quick-todo-debug.apk`. When the signing secrets are set it
+also attaches `quick-todo-release.aab`, a release bundle to upload to Google
+Play.
 
 ### Signing
 
@@ -113,7 +115,7 @@ called after the first paint. To turn on over-the-air updates:
 
 ```bash
 npx @capgo/cli login <api-key>
-npx @capgo/cli app add            # registers io.clayson.quicktodo
+npx @capgo/cli app add            # registers io.clayson.todo
 npm run build && npx @capgo/cli bundle upload
 ```
 

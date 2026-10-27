@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.clayson.quicktodo',
+  appId: 'io.clayson.todo',
   appName: 'Quick Todo',
   webDir: 'dist',
   android: {
