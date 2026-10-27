@@ -1,0 +1,177 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #16191d;
+  --muted: #5b6470;
+  --border: #e2e5ea;
+  --accent: #0d7a8f;
+  --accent-soft: #e3f4f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418;
+    --surface: #1a1e23;
+    --text: #e8eaed;
+    --muted: #9aa3ad;
+    --border: #2a3038;
+    --accent: #4cc3d9;
+    --accent-soft: #15323a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.wrap {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+header.site {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.brand img {
+  width: 32px;
+  height: 32px;
+}
+
+nav.links {
+  display: flex;
+  gap: 18px;
+  font-size: 15px;
+}
+
+a {
+  color: var(--accent);
+}
+
+nav.links a {
+  text-decoration: none;
+}
+
+nav.links a:hover,
+nav.links a[aria-current='page'] {
+  text-decoration: underline;
+}
+
+main {
+  padding: 48px 0 64px;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.hero img {
+  width: 96px;
+  height: 96px;
+  flex: none;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 2.1rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+h2 {
+  margin: 40px 0 12px;
+  font-size: 1.3rem;
+}
+
+ul.features {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.features li {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+ul.features strong {
+  display: block;
+}
+
+.callout {
+  margin: 32px 0 0;
+  padding: 16px 18px;
+  background: var(--accent-soft);
+  border-radius: 10px;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+footer.site {
+  padding: 24px 0 40px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .hero img {
+    width: 72px;
+    height: 72px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+}
