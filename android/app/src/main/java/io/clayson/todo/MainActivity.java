@@ -1,4 +1,4 @@
-package io.clayson.quicktodo;
+package io.clayson.todo;
 
 import android.content.res.Configuration;
 import android.os.Bundle;

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "io.clayson.quicktodo"
+    namespace = "io.clayson.todo"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.clayson.quicktodo"
+        applicationId "io.clayson.todo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CI passes the run number so every build installs as an update.
