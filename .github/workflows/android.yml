@@ -70,6 +70,22 @@ jobs:
         with:
           name: quick-todo-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      # Google Play takes a release bundle signed with the upload key, so this
+      # only runs when the keystore secrets are present.
+      - name: Bundle release AAB
+        if: env.ANDROID_KEYSTORE_PATH != ''
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew bundleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: env.ANDROID_KEYSTORE_PATH != ''
+        with:
+          name: quick-todo-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
       - name: Remove signing keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/signing.jks"

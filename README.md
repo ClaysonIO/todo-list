@@ -65,7 +65,9 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
-an artifact named `quick-todo-debug.apk`.
+an artifact named `quick-todo-debug.apk`. When the signing secrets are set it
+also attaches `quick-todo-release.aab`, a release bundle to upload to Google
+Play.
 
 ### Signing
 
