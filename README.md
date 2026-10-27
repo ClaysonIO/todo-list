@@ -13,7 +13,7 @@ screen as fast as possible after tapping the icon.**
 - Checked items move to the bottom of the list and are cleared at **1:00 am** even if their timer has not run out.
 - The **Calendar** page shows a month at a time; swipe up for the next month and down for the previous one. Coloured dots mark days with tasks: open (today), planned one-offs, recurring runs of scheduled tasks, done, and missed. Tap a day to see its tasks, and add tasks to today or any future day (a future task joins the list at midnight on its day). Checked tasks sit on the day they were checked, tasks that expired unchecked on the day they were created, and open tasks on today.
 - The **Expired** page lists everything that left the list, grouped and sorted by day.
-- **Settings** lets you add scheduled tasks on a 5-field cron expression (local time), switch between system / light / dark theme, export all data to CSV, and import an exported CSV (merged in, skipping items already present; scheduled tasks and settings are not part of the CSV).
+- **Settings** lets you add scheduled tasks on a 5-field cron expression (local time) and tap one to change its name or schedule, switch between system / light / dark theme, export all data to CSV, and import an exported CSV (merged in, skipping items already present; scheduled tasks and settings are not part of the CSV).
 
 ## Why it starts fast
 
@@ -68,7 +68,7 @@ npm run android:apk   # -> android/app/build/outputs/apk/debug/app-debug.apk
 The GitHub Actions workflow builds a debug APK on every push and attaches it as
 an artifact named `quick-todo-debug.apk`. When the signing secrets are set it
 also attaches `quick-todo-release.aab`, a release bundle to upload to Google
-Play.
+Play, and `quick-todo-release.apk`, a signed release APK.
 
 ### Signing
 
@@ -116,6 +116,19 @@ To publish somewhere else, set the repository variable `PLAY_TRACK` (for
 example `alpha` for closed testing, or `production`) and, if needed,
 `PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress` or `halted`).
 
+### GitHub releases
+
+Every push to `main` also creates a GitHub release named `Build <run number>`
+(tag `build-<run number>`) with the signed release APK attached as
+`quick-todo-<run number>.apk`, so people outside the Play testing track can
+install it directly. This needs only the signing secrets above; the job fails
+without them rather than publishing an APK that cannot update itself.
+
+If the app uses Play App Signing, copies installed from Google Play are signed
+with Google's key rather than yours. Android won't install a GitHub APK over one
+of those, or a Play copy over a GitHub APK, without uninstalling first, so stick
+to one source per device.
+
 ### App icon
 
 The launcher icon is generated from geometry in `scripts/make-icons.mjs`:
@@ -145,7 +158,7 @@ Then set `plugins.CapacitorUpdater.autoUpdate` to `true` in
 ## Behaviour details
 
 - **Timer expiry** and the **1 am clear** are evaluated when the app starts, when it returns to the foreground, and every 30 seconds while it is open. If the app was closed at 1 am, checked items are cleared on the next launch and recorded in history with a 1:00 am timestamp.
-- **Scheduled tasks** are evaluated at the same moments. If the app was closed across several occurrences (e.g. a daily task and the phone was off for three days) one item is added, not three, and it gets a full 30-hour timer from the moment it appears. Re-enabling a paused schedule never backfills.
+- **Scheduled tasks** are evaluated at the same moments. If the app was closed across several occurrences (e.g. a daily task and the phone was off for three days) one item is added, not three, and it gets a full 30-hour timer from the moment it appears. Re-enabling a paused schedule never backfills. Editing a scheduled task only changes its future runs: items it already added keep their text and timers, and a new schedule starts counting from the edit.
 - **Reordering** is only within the unchecked group or the checked group; a checked item can never sit above an unchecked one.
 - **History** is capped at 2000 entries and can be cleared from the Expired page.
 - **CSV export** contains active, checked and expired items with ISO-8601 timestamps. On Android it opens the system share sheet; in a browser it downloads.

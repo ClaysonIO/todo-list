@@ -6,6 +6,7 @@ import {
   deleteItem,
   deserialize,
   editItem,
+  editSchedule,
   emptyState,
   groupExpired,
   lastNightlyBoundary,
@@ -170,6 +171,38 @@ describe('sweep', () => {
     expect(sweep(s, local(2026, 9, 21, 10)).scheduled).toBe(0);
     sched.enabled = true;
     expect(sweep(s, local(2026, 9, 21, 10, 5)).scheduled).toBe(0);
+  });
+  it('edits name and schedule without touching items it already added', () => {
+    const s = emptyState();
+    const sched = addSchedule(s, 'Water plants', '0 9 * * *', local(2026, 9, 18, 12));
+    sweep(s, local(2026, 9, 19, 10));
+    expect(s.items[0]!.text).toBe('Water plants');
+    expect(editSchedule(s, sched.id, ' Feed cat ', '0 18 * * *', local(2026, 9, 19, 11))).toBe(true);
+    expect(sched.text).toBe('Feed cat');
+    expect(sched.cron).toBe('0 18 * * *');
+    // the old 09:00 run on the list keeps its name
+    expect(s.items.map((i) => i.text)).toEqual(['Water plants']);
+    // the new schedule fires from the edit onward, under the new name
+    expect(sweep(s, local(2026, 9, 19, 17)).scheduled).toBe(0);
+    expect(sweep(s, local(2026, 9, 19, 18, 5)).scheduled).toBe(1);
+    expect(s.items.map((i) => i.text)).toEqual(['Feed cat', 'Water plants']);
+  });
+  it('does not backfill runs of a new schedule from before the edit', () => {
+    const s = emptyState();
+    const sched = addSchedule(s, 'x', '0 9 * * *', local(2026, 9, 18, 12));
+    // left unchecked for days, then moved to an earlier time of day
+    editSchedule(s, sched.id, 'x', '0 6 * * *', local(2026, 9, 21, 8));
+    expect(sweep(s, local(2026, 9, 21, 8, 1)).scheduled).toBe(0);
+    expect(sweep(s, local(2026, 9, 22, 6, 1)).scheduled).toBe(1);
+  });
+  it('rejects invalid edits and leaves the schedule as it was', () => {
+    const s = emptyState();
+    const sched = addSchedule(s, 'x', '0 9 * * *', 0);
+    expect(() => editSchedule(s, sched.id, 'y', 'nope', 1)).toThrow();
+    expect(() => editSchedule(s, sched.id, '  ', '0 10 * * *', 1)).toThrow();
+    expect(sched).toMatchObject({ text: 'x', cron: '0 9 * * *', checkedAt: 0 });
+    expect(editSchedule(s, sched.id, 'x', ' 0 9 * * * ', 1)).toBe(false);
+    expect(editSchedule(s, 'missing', 'x', '0 9 * * *', 1)).toBe(false);
   });
   it('rejects invalid cron on add', () => {
     expect(() => addSchedule(emptyState(), 'x', 'nope', 0)).toThrow();
