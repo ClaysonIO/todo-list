@@ -118,5 +118,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: io.clayson.todo
           releaseFiles: app-release.aab
-          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
