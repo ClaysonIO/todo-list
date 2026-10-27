@@ -9,6 +9,7 @@ import {
   deletePlanned,
   deleteSchedule,
   editItem,
+  editSchedule,
   load,
   mergeImport,
   renewItem,
@@ -151,6 +152,18 @@ const settingsActions: SettingsActions = {
     }
     persist();
     toast('Scheduled task added');
+    return null;
+  },
+  editSchedule(id, text, cron) {
+    // Deliver anything already due under the old schedule before changing it.
+    tick();
+    try {
+      if (!editSchedule(state, id, text, cron, Date.now())) return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Invalid schedule';
+    }
+    persist();
+    toast('Scheduled task updated');
     return null;
   },
   toggleSchedule(id, enabled) {

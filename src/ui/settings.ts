@@ -5,6 +5,7 @@ import { clear, formatDateTime, h } from './dom';
 export interface SettingsActions {
   setTheme(theme: Theme): void;
   addSchedule(text: string, cron: string): string | null; // returns error message or null
+  editSchedule(id: string, text: string, cron: string): string | null; // returns error message or null
   toggleSchedule(id: string, enabled: boolean): void;
   deleteSchedule(id: string): void;
   exportCsv(): void;
@@ -21,6 +22,52 @@ const PRESETS: Array<[string, string]> = [
   ['0 9 1 * *', '1st of the month at 09:00'],
   ['0 * * * *', 'Every hour'],
 ];
+
+/** Id of the scheduled task whose edit form is open, if any. */
+let editing: string | null = null;
+
+interface CronField {
+  el: HTMLElement;
+  input: HTMLInputElement;
+  showError(message: string): void;
+}
+
+/** Cron input with a preset picker and a live "next run" preview. */
+function cronField(now: number, value = ''): CronField {
+  const input = h('input', { type: 'text', placeholder: 'min hour day month weekday', list: 'cron-presets', required: true, spellcheck: 'false', autocapitalize: 'off', value }) as HTMLInputElement;
+  const preview = h('div', { class: 'hint' });
+  const presetSelect = h('select', { 'aria-label': 'Preset' }, h('option', { value: '' }, 'Presets…')) as HTMLSelectElement;
+  for (const [expr, label] of PRESETS) presetSelect.append(h('option', { value: expr }, label));
+  const showError = (message: string) => {
+    preview.textContent = message;
+    preview.classList.add('err');
+  };
+  const updatePreview = () => {
+    const expr = input.value.trim();
+    if (!expr) {
+      preview.textContent = 'Pick a preset or type a 5-field cron expression (local time).';
+      preview.classList.remove('err');
+      return;
+    }
+    const err = cronError(expr);
+    if (err) {
+      showError(err);
+      return;
+    }
+    const next = nextOccurrence(parseCron(expr), now);
+    preview.textContent = `${describeCron(expr)} · next: ${next ? formatDateTime(next) : 'never'}`;
+    preview.classList.remove('err');
+  };
+  presetSelect.addEventListener('change', () => {
+    if (presetSelect.value) input.value = presetSelect.value;
+    presetSelect.value = '';
+    updatePreview();
+  });
+  input.addEventListener('input', updatePreview);
+  updatePreview();
+  const el = h('div', { class: 'field' }, h('label', {}, 'Schedule (cron)'), h('div', { style: 'display:flex;gap:8px' }, input, presetSelect), preview);
+  return { el, input, showError };
+}
 
 export function renderSettings(root: HTMLElement, state: State, actions: SettingsActions): void {
   clear(root);
@@ -86,61 +133,34 @@ export function renderSettings(root: HTMLElement, state: State, actions: Setting
 
   // ---- Scheduled tasks ----
   root.append(h('h2', {}, 'Scheduled tasks'));
+  const datalist = h('datalist', { id: 'cron-presets' });
+  for (const [expr, label] of PRESETS) datalist.append(h('option', { value: expr }, label));
+  root.append(datalist);
   const listCard = h('div', { class: 'card' });
   if (!state.schedules.length) {
     listCard.append(h('p', { class: 'hint', style: 'padding:12px;margin:0' }, 'No scheduled tasks yet. Add one below and it will appear in your list on schedule (when the app is open or next opened).'));
   }
   const now = Date.now();
-  for (const s of state.schedules) listCard.append(renderSchedule(s, now, actions, () => renderSettings(root, state, actions)));
+  for (const s of state.schedules) {
+    const rerender = () => renderSettings(root, state, actions);
+    listCard.append(editing === s.id ? renderScheduleEditor(s, now, actions, rerender) : renderSchedule(s, now, actions, rerender));
+  }
   root.append(listCard);
 
   const form = h('form', { class: 'card', style: 'margin-top:8px', autocomplete: 'off' });
   const textInput = h('input', { type: 'text', placeholder: 'e.g. Take out the bins', maxlength: 500, required: true }) as HTMLInputElement;
-  const cronInput = h('input', { type: 'text', placeholder: 'min hour day month weekday', list: 'cron-presets', required: true, spellcheck: 'false', autocapitalize: 'off' }) as HTMLInputElement;
-  const datalist = h('datalist', { id: 'cron-presets' });
-  for (const [expr, label] of PRESETS) datalist.append(h('option', { value: expr }, label));
-  const preview = h('div', { class: 'hint' }, 'Pick a preset or type a 5-field cron expression (local time).');
-  const presetSelect = h('select', { 'aria-label': 'Preset' }, h('option', { value: '' }, 'Presets…')) as HTMLSelectElement;
-  for (const [expr, label] of PRESETS) presetSelect.append(h('option', { value: expr }, label));
-  presetSelect.addEventListener('change', () => {
-    if (presetSelect.value) cronInput.value = presetSelect.value;
-    presetSelect.value = '';
-    updatePreview();
-  });
+  const cron = cronField(now);
   const submit = h('button', { class: 'btn', type: 'submit' }, 'Add scheduled task') as HTMLButtonElement;
-  const updatePreview = () => {
-    const expr = cronInput.value.trim();
-    if (!expr) {
-      preview.textContent = 'Pick a preset or type a 5-field cron expression (local time).';
-      preview.classList.remove('err');
-      return;
-    }
-    const err = cronError(expr);
-    if (err) {
-      preview.textContent = err;
-      preview.classList.add('err');
-      return;
-    }
-    const next = nextOccurrence(parseCron(expr), now);
-    preview.textContent = `${describeCron(expr)} · next: ${next ? formatDateTime(next) : 'never'}`;
-    preview.classList.remove('err');
-  };
-  cronInput.addEventListener('input', updatePreview);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const err = actions.addSchedule(textInput.value, cronInput.value);
+    const err = actions.addSchedule(textInput.value, cron.input.value);
     if (err) {
-      preview.textContent = err;
-      preview.classList.add('err');
+      cron.showError(err);
       return;
     }
     renderSettings(root, state, actions);
   });
-  form.append(
-    h('div', { class: 'field' }, h('label', {}, 'Task text'), textInput),
-    h('div', { class: 'field' }, h('label', {}, 'Schedule (cron)'), h('div', { style: 'display:flex;gap:8px' }, cronInput, presetSelect), datalist, preview),
-    h('div', { class: 'btn-row' }, submit),
-  );
+  form.append(h('div', { class: 'field' }, h('label', {}, 'Task text'), textInput), cron.el, h('div', { class: 'btn-row' }, submit));
   root.append(form);
 
   // ---- Data ----
@@ -184,7 +204,20 @@ function renderSchedule(s: Schedule, now: number, actions: SettingsActions, rere
   return h(
     'div',
     { class: `sched${s.enabled ? '' : ' off'}` },
-    h('div', {}, h('div', { class: 'name' }, s.text), h('div', { class: 'meta' }, meta.join(' · '))),
+    h(
+      'button',
+      {
+        class: 'sched-info',
+        type: 'button',
+        'aria-label': `Edit ${s.text}`,
+        onclick: () => {
+          editing = s.id;
+          rerender();
+        },
+      },
+      h('div', { class: 'name' }, s.text),
+      h('div', { class: 'meta' }, meta.join(' · ')),
+    ),
     h('button', {
       class: 'switch',
       type: 'button',
@@ -210,4 +243,30 @@ function renderSchedule(s: Schedule, now: number, actions: SettingsActions, rere
       '✕',
     ),
   );
+}
+
+function renderScheduleEditor(s: Schedule, now: number, actions: SettingsActions, rerender: () => void): HTMLElement {
+  const form = h('form', { class: 'sched-edit', autocomplete: 'off' });
+  const textInput = h('input', { type: 'text', maxlength: 500, required: true, value: s.text, 'aria-label': 'Task text' }) as HTMLInputElement;
+  const cron = cronField(now, s.cron);
+  const close = () => {
+    editing = null;
+    rerender();
+  };
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const err = actions.editSchedule(s.id, textInput.value, cron.input.value);
+    if (err) {
+      cron.showError(err);
+      return;
+    }
+    close();
+  });
+  form.append(
+    h('div', { class: 'field' }, h('label', {}, 'Task text'), textInput),
+    cron.el,
+    h('p', { class: 'hint', style: 'padding:0 12px;margin:0' }, 'Changes apply to future runs only. Tasks already on your list or in history stay as they are.'),
+    h('div', { class: 'btn-row' }, h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Cancel'), h('button', { class: 'btn', type: 'submit' }, 'Save')),
+  );
+  return form;
 }

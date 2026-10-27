@@ -320,6 +320,27 @@ export function updateSchedule(state: State, id: string, patch: Partial<Pick<Sch
   return true;
 }
 
+/**
+ * Rename and/or reschedule a recurring task. Items it already added are
+ * independent copies, so only future runs change. A new cron starts its
+ * clock from `now` so it never backfills runs from before the edit; sweep
+ * first so anything already due under the old schedule is delivered.
+ * Throws on an invalid cron or blank text.
+ */
+export function editSchedule(state: State, id: string, text: string, cron: string, now: number): boolean {
+  const s = state.schedules.find((x) => x.id === id);
+  if (!s) return false;
+  const trimmedText = text.trim();
+  const trimmedCron = cron.trim();
+  if (!trimmedText) throw new Error('Enter the task text.');
+  parseCron(trimmedCron); // throws on invalid input
+  if (s.text === trimmedText && s.cron === trimmedCron) return false;
+  if (s.cron !== trimmedCron) s.checkedAt = now;
+  s.text = trimmedText;
+  s.cron = trimmedCron;
+  return true;
+}
+
 export function deleteSchedule(state: State, id: string): boolean {
   const idx = state.schedules.findIndex((x) => x.id === id);
   if (idx < 0) return false;
